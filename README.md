@@ -1,102 +1,162 @@
-# AssetFlow — Enterprise Asset & Resource Management (PERN)
+# AssetFlow
 
-Hackathon build: **P**ostgreSQL (Supabase) + **E**xpress + **R**eact (Vite) + **N**ode.
+AssetFlow is a full-stack asset and resource management platform built for a hackathon. It helps teams track assets, allocate ownership, prevent booking conflicts, run audits, and manage maintenance workflows from one dashboard.
 
-```
+## Hackathon Summary
+
+- Problem: teams lose visibility on who has what asset, when it is booked, and whether it is in good condition.
+- Solution: a role-based platform for complete asset lifecycle management.
+- Stack: PostgreSQL (Supabase) + Express + React (Vite) + Node.js.
+- Deployment: static frontend + serverless API on Vercel.
+
+## Core Features
+
+- Authentication and role-based access (Admin, Asset Manager, Department Head, Employee).
+- Organization setup: departments, categories, and employee management.
+- Asset registry with automatic asset tags (`AF-0001`, `AF-0002`, ...).
+- Allocation and transfer workflows with conflict detection.
+- Booking system with overlap validation (prevents double-booking).
+- Maintenance lifecycle: request, approve/reject, assign, in-progress, resolve.
+- Audit cycles with discrepancy reporting and close-out actions.
+- Dashboard metrics, notifications, reports, and activity logs.
+
+## Project Structure
+
+```text
 AssetFlow/
-├── backend/    Express API (JWT auth, role-based routes)
-├── database/   schema.sql + seed.sql — paste into Supabase SQL Editor
-└── frontend/   React + Vite + Tailwind
+|-- api/
+|   `-- [...path].js          # Vercel serverless API entrypoint
+|-- backend/
+|   |-- src/
+|   |   |-- app.js            # Express app for serverless and local reuse
+|   |   `-- index.js          # Local API server entrypoint
+|   `-- .env.example
+|-- database/
+|   |-- schema.sql
+|   `-- seed.sql
+|-- frontend/
+|   |-- src/
+|   `-- vite.config.js
+|-- package.json
+`-- vercel.json
 ```
 
-## One-time Supabase setup (ONE teammate does this, then shares the string)
+## Architecture
 
-1. Go to [supabase.com](https://supabase.com) → New project → pick a region near you, set a DB password.
-2. **SQL Editor** (left sidebar) → paste all of `database/schema.sql` → Run.
-3. New query → paste all of `database/seed.sql` → Run (demo accounts + sample assets).
-4. Project → **Connect** (top bar) → copy the **Session pooler** connection string
-   (port **5432** — not the Transaction pooler on 6543, and not the direct connection which is IPv6-only).
-5. Share it in the team chat — everyone uses the **same** database.
+- Frontend calls `/api/*`.
+- In local development, Vite proxies `/api` to `http://localhost:5000`.
+- In production (Vercel), `/api/*` is handled by `api/[...path].js`, which forwards to the Express app.
+- PostgreSQL is hosted on Supabase and accessed via `DATABASE_URL`.
 
-## Setup (every teammate)
+## Quick Start (Local)
+
+### 1) Database Setup (Supabase)
+
+1. Create a Supabase project.
+2. Open SQL Editor and run `database/schema.sql`.
+3. Run `database/seed.sql` for demo data and users.
+4. Copy the Session pooler connection string (port `5432`).
+
+### 2) Backend Setup
 
 ```bash
-# 1. Backend
 cd backend
-copy .env.example .env        # paste the shared Supabase DATABASE_URL into .env
-npm install
-npm run dev                   # → http://localhost:5000
-
-# 2. Frontend (new terminal)
-cd frontend
-npm install
-npm run dev                   # → http://localhost:5173 (proxies /api to :5000)
+copy .env.example .env
 ```
 
-**Demo logins** (seeded):
+Update `backend/.env` values:
+
+```env
+PORT=5000
+DATABASE_URL=<your-supabase-session-pooler-url>
+JWT_SECRET=<strong-random-secret>
+```
+
+Then run:
+
+```bash
+npm install
+npm run dev
+```
+
+Backend starts on `http://localhost:5000`.
+
+### 3) Frontend Setup
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend starts on `http://localhost:5173`.
+
+## Root Scripts
+
+Run from repo root:
+
+```bash
+npm run dev:backend   # starts backend in watch mode
+npm run dev:frontend  # starts frontend dev server
+npm run build         # installs frontend deps and builds frontend/dist
+```
+
+## Demo Accounts
+
+Seeded users from `database/seed.sql`:
 
 | Email | Password | Role |
 |---|---|---|
 | admin@assetflow.com | admin123 | Admin |
 | manager@assetflow.com | password123 | Asset Manager |
 | head@assetflow.com | password123 | Department Head |
-| priya@assetflow.com | password123 | Employee (holds AF-0001) |
+| priya@assetflow.com | password123 | Employee |
 | raj@assetflow.com | password123 | Employee |
 
-## What already works (this first draft)
+## API Snapshot
 
-- Auth: signup (employee-only, no self-elevation), login, JWT session restore
-- Role-based access on every route (`requireRole` middleware)
-- Org Setup: departments (hierarchy + heads), categories, employee directory with role promotion
-- Assets: register with auto tag (AF-0001…), search/filter, lifecycle statuses, per-asset history
-- **Allocation conflict rule**: allocating a held asset → 409 with holder name → "Request Transfer Instead" button
-- Transfer workflow: requested → approved/rejected → auto re-allocation
-- Return flow with condition notes; overdue returns auto-flagged (dashboard + red rows)
-- **Booking overlap validation**: 9:00–10:00 vs 9:30–10:30 rejected; back-to-back allowed
-- Maintenance workflow: pending → approved/rejected → assigned → in progress → resolved, with asset status auto-sync
-- Audit cycles: create, assign auditors, mark verified/missing/damaged, discrepancy report, close (missing → Lost)
-- Dashboard KPIs, notifications, activity log, starter reports
+All endpoints are under `/api` and use JSON. Protected routes require:
 
-## Team split (4 people × 8 hours)
+`Authorization: Bearer <token>`
 
-Each frontend page has an `// OWNER: Px` comment at the top. Push at least once per hour.
+Key endpoint groups:
 
-| Person | Owns | Hour-by-hour |
-|---|---|---|
-| **P1** | Auth polish + Org Setup (Screens 1, 3) | H1: run app, test flows · H2–3: forgot password + custom category fields editor · H4–5: dept hierarchy view, validation, empty states · H6–7: UI polish, form errors · H8: demo prep |
-| **P2** | Assets + Allocation/Transfer (Screens 4, 5) | H1: run app, test flows · H2–3: photo upload (base64 or URL), asset detail actions · H4–5: QR code (`qrcode.react`), status transition buttons · H6–7: filters by dept/location, transfer approval by dept head scope · H8: demo prep |
-| **P3** | Bookings + Maintenance (Screens 6, 7) | H1: run app, test flows · H2–3: calendar/day-grid view for bookings · H4–5: reschedule, booking reminder toast, maintenance photo attach · H6–7: technician assign modal, priority filter, polish · H8: demo prep |
-| **P4** | Dashboard, Audits, Reports, Notifications (Screens 2, 8, 9, 10) | H1: run app, test flows · H2–3: charts on Reports (CSS bars → recharts), booking heatmap · H4–5: audit discrepancy report view + CSV export · H6–7: unread badge, notification polling/toasts, dashboard polish · H8: demo prep |
+- `/auth` for signup/login/session.
+- `/org` for departments, categories, and employees.
+- `/assets` for asset registry and updates.
+- `/allocations` and `/allocations/transfers` for asset assignment and transfer flow.
+- `/bookings` for reservations and cancellation.
+- `/maintenance` for maintenance workflow actions.
+- `/audits` for audit cycles, records, discrepancies, and closure.
+- `/dashboard`, `/reports`, `/notifications`, `/activity` for reporting and system visibility.
 
-### Git workflow (hourly pushes)
+## Deployment (Vercel)
 
-```bash
-git checkout -b feat/<yourname>-<feature>   # work on a branch
-git add . && git commit -m "feat: ..."
-git push -u origin feat/<yourname>-<feature>
-# open PR → merge to main; or if team agrees, push small commits straight to main
-git pull --rebase origin main               # before every push, always
-```
+This repository is configured for Vercel:
 
-Merge-conflict insurance: **each person edits only their own pages/routes**. Shared files (`App.jsx`, `index.js`, `schema.sql`) — announce in group chat before touching.
+- Build command: `npm run build`
+- Output directory: `frontend/dist`
+- API route: `api/[...path].js` exports the Express app
+- SPA fallback rewrite is configured in `vercel.json`
 
-⚠️ Everyone shares ONE Supabase database. If the schema changes: edit `database/schema.sql`, announce it, then one person re-pastes `schema.sql` + `seed.sql` in the Supabase SQL Editor (schema.sql drops + recreates everything — all data is wiped, which is fine for a hackathon).
+Set environment variables in Vercel project settings:
 
-## API reference
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `CORS_ORIGIN` (optional, comma-separated)
 
-All routes under `/api`, JSON, `Authorization: Bearer <token>`.
+## Hackathon Pitch
 
-| Method + Path | What | Who |
-|---|---|---|
-| POST `/auth/signup` `/auth/login`, GET `/auth/me` | Auth | public / any |
-| GET/POST/PUT `/org/departments` | Departments | writes: admin |
-| GET/POST/PUT `/org/categories` | Categories | writes: admin |
-| GET `/org/employees`, PUT `/org/employees/:id` | Directory + role promotion | writes: admin |
-| GET/POST `/assets`, GET/PUT `/assets/:id` | Registry + history | writes: admin, asset_manager |
-| GET/POST `/allocations` | Allocate (409 on conflict) | writes: admin, AM, dept head |
-| POST `/allocations/:id/return` | Return flow | any |
-| GET/POST `/allocations/transfers`, PUT `/allocations/transfers/:id` | Transfer workflow (`{action: approve\|reject}`) | decide: admin, AM, dept head |
-| GET/POST `/bookings` (409 on overlap), POST `/bookings/:id/cancel` | Booking | any |
-| GET/POST `/maintenance`, PUT `/maintenance/:id` | Workflow (`{action: approve\|reject\|assign\|start\|resolve}`) | transitions: admin, AM |
-| GET/POST `/audits`, GET `/audits/:id`, POST `/audits/:id/records`, GET `/audits/:id/discrepancies`, POST `/audits/:id/close` | Audit cycles | create: admin; close: admin, AM |
-| GET `/dashboard` `/reports` `/notifications` `/activity`, POST `/notifications/read-all` | Dashboard/reports/notifs | any |
+AssetFlow turns scattered spreadsheets and manual handovers into one reliable system for asset ownership, availability, and condition. The product is designed to reduce lost assets, avoid booking collisions, and improve accountability with auditable workflows.
+
+## Future Improvements
+
+- QR-based rapid check-in/check-out flows.
+- File/image attachments for maintenance and audit evidence.
+- Advanced analytics and exportable compliance reports.
+- Real-time notifications and approvals.
+- SSO and enterprise access controls.
+
+## License
+
+This project was built for a hackathon prototype/demo.
