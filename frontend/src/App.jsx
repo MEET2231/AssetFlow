@@ -13,6 +13,7 @@ import Maintenance from './pages/Maintenance';
 import Audits from './pages/Audits';
 import Reports from './pages/Reports';
 import Notifications from './pages/Notifications';
+import ScanPage from './pages/ScanPage';
 
 function Protected({ children, roles }) {
   const { user, loading } = useAuth();
@@ -27,6 +28,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/scan/:tag" element={<ScanPage />} />
       <Route element={<Protected><Layout /></Protected>}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/org" element={<Protected roles={['admin']}><OrgSetup /></Protected>} />

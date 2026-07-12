@@ -14,7 +14,7 @@ const STATUS_COLORS = {
   disposed: 'bg-gray-200 text-gray-500',
 };
 
-const EMPTY_FORM = { name: '', category_id: '', serial_number: '', location: '', is_bookable: false, image_url: '', imageMode: 'url' };
+const EMPTY_FORM = { name: '', category_id: '', serial_number: '', location: '', is_bookable: false, image_url: '', imageMode: 'url', brand: '', model: '', vendor: '', warranty_expiry: '' };
 
 function toBase64(file) {
   return new Promise((resolve, reject) => {
@@ -85,6 +85,13 @@ export default function Assets() {
           </select>
           <input className="input" placeholder="Serial number" value={form.serial_number} onChange={(e) => setForm({ ...form, serial_number: e.target.value })} />
           <input className="input" placeholder="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+          <input className="input" placeholder="Brand (e.g. Dell, Apple)" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} />
+          <input className="input" placeholder="Model (e.g. Latitude 5440)" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} />
+          <input className="input" placeholder="Vendor / Supplier" value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} />
+          <div className="space-y-0.5">
+            <label className="text-xs text-gray-400">Warranty Expiry</label>
+            <input type="date" className="input" value={form.warranty_expiry} onChange={(e) => setForm({ ...form, warranty_expiry: e.target.value })} />
+          </div>
 
           {/* Photo upload */}
           <div className="md:col-span-2 space-y-1">

@@ -45,6 +45,10 @@ CREATE TABLE assets (
   condition        TEXT NOT NULL DEFAULT 'good' CHECK (condition IN ('new','good','fair','poor')),
   location         TEXT,
   image_url        TEXT,
+  brand            TEXT,
+  model            TEXT,
+  vendor           TEXT,
+  warranty_expiry  DATE,
   is_bookable      BOOLEAN NOT NULL DEFAULT false, -- shared resource flag
   status           TEXT NOT NULL DEFAULT 'available'
                    CHECK (status IN ('available','allocated','reserved','under_maintenance','lost','retired','disposed')),

@@ -1,6 +1,7 @@
 // OWNER: P2 — add photo display, status transition buttons, QR code render
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../api';
 import { useAuth } from '../AuthContext';
 
@@ -43,6 +44,7 @@ export default function AssetDetail() {
   const [showEdit, setShowEdit] = useState(false);
   const [edit, setEdit] = useState({});
   const [imageMode, setImageMode] = useState('url');
+  const qrRef = useRef(null);
 
   const reload = () => api(`/assets/${id}`).then((a) => { setAsset(a); setEdit({ name: a.name, condition: a.condition, location: a.location || '', is_bookable: a.is_bookable, image_url: a.image_url || '' }); });
   useEffect(() => { reload(); }, [id]);
@@ -51,6 +53,17 @@ export default function AssetDetail() {
 
   const canEdit   = ['admin', 'asset_manager'].includes(user.role);
   const canDelete = canEdit;
+
+  const downloadQR = () => {
+    const svg = qrRef.current?.querySelector('svg');
+    if (!svg) return;
+    const blob = new Blob([svg.outerHTML], { type: 'image/svg+xml' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${asset.asset_tag}.svg`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
 
   const handleFile = async (e) => {
     const file = e.target.files[0];
@@ -128,15 +141,43 @@ export default function AssetDetail() {
         <div className="card">
           <h2 className="font-semibold mb-3 text-sm text-gray-500 uppercase tracking-wide">Actions</h2>
           <div className="flex flex-wrap gap-2">
-            {nextStatuses.map((s) => (
-              <button key={s} onClick={() => transition(s)}
-                className={`btn text-sm capitalize ${s === 'disposed' || s === 'lost' ? 'bg-red-600 hover:bg-red-700 text-white' : s === 'retired' ? 'bg-gray-500 hover:bg-gray-600 text-white' : ''}`}>
-                Mark as {s.replace('_', ' ')}
-              </button>
-            ))}
+            {nextStatuses.map((s) => {
+              const isDanger = s === 'disposed' || s === 'lost';
+              const isWarn   = s === 'retired';
+              return (
+                <button key={s} onClick={() => transition(s)}
+                  className={`btn text-sm capitalize ${
+                    isDanger ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : isWarn ? 'bg-gray-500 hover:bg-gray-600 text-white'
+                    : ''
+                  }`}>
+                  Mark as {s.replace('_', ' ')}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
+
+      {/* QR Code */}
+      <div className="card flex items-start gap-6">
+        <div>
+          <h2 className="font-semibold mb-3 text-sm text-gray-500 uppercase tracking-wide">QR Code</h2>
+          <div ref={qrRef}>
+            <QRCodeSVG
+              value={`http://10.85.103.70:5173/scan/${asset.asset_tag}`}
+              size={128}
+              includeMargin
+              level="M"
+            />
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 mt-8">
+          <p className="text-xs text-gray-400">Scan to view full asset info</p>
+          <p className="text-xs font-mono text-gray-500">{asset.asset_tag}</p>
+          <button onClick={downloadQR} className="btn text-sm mt-1">⬇ Download SVG</button>
+        </div>
+      </div>
 
       {/* Edit modal */}
       {showEdit && (
