@@ -29,19 +29,22 @@ router.get('/dashboard', ah(async (req, res) => {
            FROM allocations al JOIN assets a ON a.id = al.asset_id LEFT JOIN users u ON u.id = al.employee_id
            WHERE al.status = 'active' AND al.expected_return_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 7
            ORDER BY al.expected_return_date LIMIT 10`),
-    query(isManager
-      ? `SELECT b.id, b.start_time, b.end_time, b.status, b.purpose, a.asset_tag, a.name AS asset_name, u.name AS booked_by_name
-         FROM bookings b
-         JOIN assets a ON a.id = b.asset_id
-         JOIN users u ON u.id = b.booked_by
-         WHERE b.status = 'pending'
-         ORDER BY b.created_at DESC LIMIT 10`
-      : `SELECT b.id, b.start_time, b.end_time, b.status, b.purpose, a.asset_tag, a.name AS asset_name, u.name AS booked_by_name
-         FROM bookings b
-         JOIN assets a ON a.id = b.asset_id
-         JOIN users u ON u.id = b.booked_by
-         WHERE b.booked_by = $1 AND b.status != 'cancelled'
-         ORDER BY b.start_time LIMIT 10`, [req.user.id]),
+    query(
+      isManager
+        ? `SELECT b.id, b.start_time, b.end_time, b.status, b.purpose, a.asset_tag, a.name AS asset_name, u.name AS booked_by_name
+           FROM bookings b
+           JOIN assets a ON a.id = b.asset_id
+           JOIN users u ON u.id = b.booked_by
+           WHERE b.status = 'pending'
+           ORDER BY b.created_at DESC LIMIT 10`
+        : `SELECT b.id, b.start_time, b.end_time, b.status, b.purpose, a.asset_tag, a.name AS asset_name, u.name AS booked_by_name
+           FROM bookings b
+           JOIN assets a ON a.id = b.asset_id
+           JOIN users u ON u.id = b.booked_by
+           WHERE b.booked_by = $1 AND b.status != 'cancelled'
+           ORDER BY b.start_time LIMIT 10`,
+      isManager ? undefined : [req.user.id],
+    ),
     query(`SELECT al.id, al.expected_return_date, a.asset_tag, a.name AS asset_name, c.name AS category_name
            FROM allocations al
            JOIN assets a ON a.id = al.asset_id
