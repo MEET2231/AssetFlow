@@ -95,6 +95,12 @@ export default function Dashboard() {
   );
 
   const isManager = ['admin', 'asset_manager'].includes(user?.role);
+  const kpis = data?.kpis ?? {};
+  const pendingBookings = data?.pending_bookings ?? [];
+  const overdueReturns = data?.overdue_returns ?? [];
+  const upcomingReturns = data?.upcoming_returns ?? [];
+  const myAssets = data?.my_assets ?? [];
+  const recentActivity = data?.recent_activity ?? [];
   const now = new Date();
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
 
@@ -128,7 +134,7 @@ export default function Dashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {KPI_CONFIG.map((k) => {
-          const val = Number(data.kpis[k.key]) || 0;
+          const val = Number(kpis[k.key]) || 0;
           const urgent = k.key === 'overdue_returns' && val > 0;
           return (
             <Link
@@ -166,19 +172,19 @@ export default function Dashboard() {
                     <Icon path={ICONS.pending} className="h-4 w-4 text-amber-600" />
                   </span>
                   Pending Booking Approvals
-                  {data.kpis.pending_bookings_count > 0 && (
+                  {kpis.pending_bookings_count > 0 && (
                     <span className="ml-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
-                      {data.kpis.pending_bookings_count}
+                      {kpis.pending_bookings_count}
                     </span>
                   )}
                 </h2>
                 <Link to="/bookings" className="text-xs text-indigo-600 hover:underline font-medium">View All</Link>
               </div>
-              {data.pending_bookings.length === 0 ? (
+              {pendingBookings.length === 0 ? (
                 <p className="text-sm text-gray-400 py-4 text-center">No pending booking requests.</p>
               ) : (
                 <div className="divide-y divide-gray-100">
-                  {data.pending_bookings.map((b) => (
+                  {pendingBookings.map((b) => (
                     <div key={b.id} className="flex items-center justify-between py-3 gap-3">
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-gray-800 truncate">{b.asset_name} <span className="font-mono text-xs text-gray-400">({b.asset_tag})</span></div>
@@ -207,7 +213,7 @@ export default function Dashboard() {
           )}
 
           {/* Employee: My Upcoming Bookings */}
-          {!isManager && data.pending_bookings.length > 0 && (
+          {!isManager && pendingBookings.length > 0 && (
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-bold text-gray-800 flex items-center gap-2">
@@ -242,13 +248,13 @@ export default function Dashboard() {
               <h2 className="font-bold text-red-600 mb-3 flex items-center gap-2 text-sm">
                 <Icon path={ICONS.overdue} className="h-4 w-4" />
                 Overdue Returns
-                <span className="ml-auto px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-100 text-xs font-bold">{data.kpis.overdue_returns}</span>
+                <span className="ml-auto px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-100 text-xs font-bold">{kpis.overdue_returns}</span>
               </h2>
-              {data.overdue_returns.length === 0 ? (
+              {overdueReturns.length === 0 ? (
                 <p className="text-xs text-gray-400 py-3 text-center">All assets returned on time.</p>
               ) : (
                 <div className="space-y-0">
-                  {data.overdue_returns.map((r) => (
+                  {overdueReturns.map((r) => (
                     <div key={r.id} className="flex justify-between items-start py-2.5 border-t border-gray-100 gap-2">
                       <div>
                         <div className="text-xs font-semibold text-gray-800">{r.asset_name}</div>
@@ -265,13 +271,13 @@ export default function Dashboard() {
               <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2 text-sm">
                 <Icon path={ICONS.upcoming} className="h-4 w-4 text-sky-600" />
                 Upcoming Returns
-                <span className="ml-auto px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 border border-sky-100 text-xs font-bold">{data.kpis.upcoming_returns}</span>
+                <span className="ml-auto px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 border border-sky-100 text-xs font-bold">{kpis.upcoming_returns}</span>
               </h2>
-              {data.upcoming_returns.length === 0 ? (
+              {upcomingReturns.length === 0 ? (
                 <p className="text-xs text-gray-400 py-3 text-center">No returns due this week.</p>
               ) : (
                 <div className="space-y-0">
-                  {data.upcoming_returns.map((r) => (
+                  {upcomingReturns.map((r) => (
                     <div key={r.id} className="flex justify-between items-start py-2.5 border-t border-gray-100 gap-2">
                       <div>
                         <div className="text-xs font-semibold text-gray-800">{r.asset_name}</div>
@@ -286,7 +292,7 @@ export default function Dashboard() {
           </div>
 
           {/* Employee: My Allocated Assets */}
-          {data.my_assets.length > 0 && (
+          {myAssets.length > 0 && (
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-bold text-gray-800 flex items-center gap-2">
@@ -308,7 +314,7 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.my_assets.map((a) => {
+                    {myAssets.map((a) => {
                       const overdue = a.expected_return_date && new Date(a.expected_return_date) < now;
                       return (
                         <tr key={a.id} className={overdue ? 'bg-red-50/40' : 'hover:bg-gray-50/50'}>
@@ -336,9 +342,9 @@ export default function Dashboard() {
             <h2 className="font-bold text-slate-200 mb-4 text-sm uppercase tracking-wider">System Snapshot</h2>
             <div className="space-y-3">
               {[
-                { label: 'Pending Booking Approvals', val: data.kpis.pending_bookings_count,    color: 'text-amber-400' },
-                { label: 'Open Maintenance Requests', val: data.kpis.pending_maintenance_count, color: 'text-rose-400' },
-                { label: 'Pending Asset Transfers',   val: data.kpis.pending_transfers,          color: 'text-purple-400' },
+                { label: 'Pending Booking Approvals', val: kpis.pending_bookings_count,    color: 'text-amber-400' },
+                { label: 'Open Maintenance Requests', val: kpis.pending_maintenance_count, color: 'text-rose-400' },
+                { label: 'Pending Asset Transfers',   val: kpis.pending_transfers,          color: 'text-purple-400' },
               ].map((s) => (
                 <div key={s.label} className="flex justify-between items-center py-2 border-b border-slate-700/50 last:border-0">
                   <span className="text-xs text-slate-400">{s.label}</span>
@@ -378,11 +384,11 @@ export default function Dashboard() {
               <h2 className="font-bold text-gray-800 text-sm uppercase tracking-wider">Recent Activity</h2>
               <Link to="/notifications" className="text-xs text-indigo-600 hover:underline font-medium">View All</Link>
             </div>
-            {data.recent_activity.length === 0 ? (
+            {recentActivity.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-3">No recent activity.</p>
             ) : (
               <div className="space-y-0">
-                {data.recent_activity.map((a, i) => (
+                {recentActivity.map((a, i) => (
                   <div key={i} className="flex items-start gap-2.5 py-2.5 border-b border-gray-100 last:border-0">
                     <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 shrink-0" />
                     <div className="flex-1 min-w-0">
