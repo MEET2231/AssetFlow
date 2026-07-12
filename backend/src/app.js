@@ -9,6 +9,8 @@ import bookingRoutes from './routes/bookings.js';
 import maintenanceRoutes from './routes/maintenance.js';
 import auditRoutes from './routes/audits.js';
 import miscRoutes from './routes/misc.js';
+import technicianRoutes from './routes/technicians.js';
+
 
 dotenv.config();
 
@@ -23,6 +25,14 @@ const origins = process.env.CORS_ORIGIN
 app.use(cors({ origin: origins }));
 app.use(express.json());
 
+// Normalize URLs on Vercel so Express routes match correctly
+app.use((req, res, next) => {
+  if (req.url && !req.url.startsWith('/api')) {
+    req.url = '/api' + req.url;
+  }
+  next();
+});
+
 app.get('/api/health', (req, res) => res.json({ ok: true, service: 'assetflow' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/org', orgRoutes);
@@ -31,6 +41,7 @@ app.use('/api/allocations', allocationRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/audits', auditRoutes);
+app.use('/api/technicians', technicianRoutes);
 app.use('/api', miscRoutes);
 
 // Central error handler — route handlers just throw
