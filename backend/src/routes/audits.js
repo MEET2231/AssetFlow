@@ -170,6 +170,12 @@ router.post('/:id/records', ah(async (req, res) => {
      RETURNING *`, [req.params.id, asset_id, result, notes || null, req.user.id]);
   if (result !== 'verified') {
     await logActivity(req.user.id, 'audit.discrepancy', 'asset', asset_id, `${result}: ${notes || ''}`);
+    // Notify admins/managers about the discrepancy
+    const { rows: [flaggedAsset] } = await query(`SELECT asset_tag, name FROM assets WHERE id = $1`, [asset_id]);
+    const { rows: managers } = await query(`SELECT id FROM users WHERE role IN ('admin', 'asset_manager') AND status = 'active'`);
+    for (const mgr of managers) {
+      await notify(mgr.id, 'audit_discrepancy', `Audit discrepancy: ${flaggedAsset?.asset_tag} (${flaggedAsset?.name}) flagged as ${result} in "${cycle.name}"`);
+    }
   }
   res.status(201).json(record);
 }));

@@ -73,6 +73,12 @@ export default function Login() {
           </div>
         </Field>
 
+        <div className="flex justify-end">
+          <Link to="/forgot-password" className="text-xs text-indigo-600 font-medium hover:underline">
+            Forgot password?
+          </Link>
+        </div>
+
         <button className="btn w-full !py-2.5" disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>

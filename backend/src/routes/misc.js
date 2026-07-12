@@ -91,6 +91,56 @@ router.post('/notifications/read-all', ah(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// Mark a single notification as read
+router.patch('/notifications/:id/read', ah(async (req, res) => {
+  await query(`UPDATE notifications SET read = true WHERE id = $1 AND user_id = $2`, [req.params.id, req.user.id]);
+  res.json({ ok: true });
+}));
+
+// Check for overdue returns and send alerts (idempotent — skips if already notified today)
+router.post('/notifications/check-overdue', ah(async (req, res) => {
+  const { rows: overdue } = await query(
+    `SELECT al.id, al.employee_id, al.expected_return_date, a.asset_tag, a.name
+     FROM allocations al JOIN assets a ON a.id = al.asset_id
+     WHERE al.status = 'active' AND al.expected_return_date < CURRENT_DATE AND al.employee_id IS NOT NULL`);
+  let sent = 0;
+  for (const r of overdue) {
+    // Avoid duplicate alerts: check if already notified today for this allocation
+    const { rows: [existing] } = await query(
+      `SELECT id FROM notifications WHERE user_id = $1 AND type = 'overdue_return'
+       AND message LIKE $2 AND created_at::date = CURRENT_DATE`,
+      [r.employee_id, `%${r.asset_tag}%`]);
+    if (!existing) {
+      await notify(r.employee_id, 'overdue_return',
+        `⚠️ Overdue: ${r.name} (${r.asset_tag}) was due back on ${new Date(r.expected_return_date).toLocaleDateString()}`);
+      sent++;
+    }
+  }
+  res.json({ checked: overdue.length, sent });
+}));
+
+// Send booking reminders for bookings starting within the next hour
+router.post('/notifications/booking-reminders', ah(async (req, res) => {
+  const { rows: upcoming } = await query(
+    `SELECT b.id, b.booked_by, b.start_time, a.name AS asset_name, a.asset_tag
+     FROM bookings b JOIN assets a ON a.id = b.asset_id
+     WHERE b.status = 'approved'
+       AND b.start_time BETWEEN now() AND now() + INTERVAL '1 hour'`);
+  let sent = 0;
+  for (const b of upcoming) {
+    const { rows: [existing] } = await query(
+      `SELECT id FROM notifications WHERE user_id = $1 AND type = 'booking_reminder'
+       AND message LIKE $2 AND created_at::date = CURRENT_DATE`,
+      [b.booked_by, `%${b.asset_tag}%`]);
+    if (!existing) {
+      await notify(b.booked_by, 'booking_reminder',
+        `🔔 Reminder: Your booking for ${b.asset_name} (${b.asset_tag}) starts at ${new Date(b.start_time).toLocaleTimeString()}`);
+      sent++;
+    }
+  }
+  res.json({ checked: upcoming.length, sent });
+}));
+
 router.get('/activity', ah(async (req, res) => {
   const { rows } = await query(
     `SELECT l.*, u.name AS user_name FROM activity_logs l LEFT JOIN users u ON u.id = l.user_id
